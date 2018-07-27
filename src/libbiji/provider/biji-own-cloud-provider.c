@@ -757,6 +757,7 @@ biji_own_cloud_provider_constructed (GObject *obj)
   GError *error;
   GIcon *icon;
   gchar** identity;
+  const gchar *presentation_identity;
   gchar *owncloudclient;
   GFile *client;
 
@@ -774,8 +775,6 @@ biji_own_cloud_provider_constructed (GObject *obj)
 
   if (self->account != NULL)
   {
-    const gchar *presentation_identity;
-
     self->info.unique_id = goa_account_get_id (self->account);
     self->info.datasource = g_strdup_printf ("gn:goa-account:%s",
                                              self->info.unique_id);
