@@ -134,7 +134,6 @@ on_link_clicked (GtkButton        *button,
   BjbApplication          *app;
   BjbSettings             *settings;
   const gchar             *link;
-  GtkWidget               *window;
   BijiNoteObj             *result;
   GdkRGBA                  color;
   BijiManager             *manager;
@@ -145,9 +144,7 @@ on_link_clicked (GtkButton        *button,
   if (link == NULL)
     return;
 
-  window = bjb_note_view_get_base_window (self->view);
-  manager = bjb_window_base_get_manager(window);
-
+  manager = bjb_application_get_manager (app);
   settings = bjb_application_get_settings (app);
   result = biji_manager_note_new (manager,
                                     link,

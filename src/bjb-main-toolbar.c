@@ -174,6 +174,7 @@ on_help_cb (BjbMainToolbar *self)
 static void
 on_new_note_clicked (BjbMainToolbar *self)
 {
+  BjbApplication *app;
   BijiNoteObj *result;
   BijiManager *manager;
   BjbSettings  *settings;
@@ -181,8 +182,9 @@ on_new_note_clicked (BjbMainToolbar *self)
   g_assert (BJB_IS_MAIN_TOOLBAR (self));
 
   /* append note to notebook */
-  manager = bjb_window_base_get_manager (bjb_main_view_get_window (self->parent));
-  settings = bjb_application_get_settings (BJB_APPLICATION_DEFAULT);
+  app = BJB_APPLICATION_DEFAULT;
+  manager = bjb_application_get_manager (app);
+  settings = bjb_application_get_settings (app);
   result = biji_manager_note_new (manager,
                                     NULL,
                                     bjb_settings_get_default_location (settings));
@@ -406,7 +408,7 @@ on_back_button_clicked (BjbMainToolbar *self)
 static void
 on_empty_clicked_callback        (BjbMainToolbar *self)
 {
-  biji_manager_empty_bin (bjb_window_base_get_manager (GTK_WIDGET (self->window)));
+  biji_manager_empty_bin (bjb_application_get_manager (BJB_APPLICATION_DEFAULT));
 }
 
 

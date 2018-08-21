@@ -539,12 +539,6 @@ bjb_window_base_get_view_type (BjbWindowBase *self)
   return self->current_view;
 }
 
-BijiManager *
-bjb_window_base_get_manager(GtkWidget * win)
-{
-  return bjb_application_get_manager (BJB_APPLICATION_DEFAULT);
-}
-
 void
 bjb_window_base_set_entry(GtkWidget *win, gchar *search_entry)
 {

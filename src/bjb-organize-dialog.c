@@ -19,7 +19,7 @@
 #include <glib/gi18n.h>
 
 #include "bjb-organize-dialog.h"
-#include "bjb-window-base.h"
+#include "bjb-application.h"
 
 /* Model for tree view */
 enum {
@@ -188,7 +188,7 @@ update_notebooks_model_async (BjbOrganizeDialog *self)
 {
   BijiManager *manager;
 
-  manager = bjb_window_base_get_manager (GTK_WIDGET (self->window));
+  manager = bjb_application_get_manager (BJB_APPLICATION_DEFAULT);
   gtk_list_store_clear (self->notebook_store);
   biji_get_all_notebooks_async (manager, bjb_organize_dialog_handle_tags, self);
 }
@@ -229,7 +229,7 @@ on_tag_toggled (GtkCellRendererToggle *cell,
   gtk_tree_model_get (model, &iter, COL_URN, &tag, -1);
 
   self->toggled_notebook = tag;
-  manager = bjb_window_base_get_manager (GTK_WIDGET (self->window));
+  manager = bjb_application_get_manager (BJB_APPLICATION_DEFAULT);
   notebook = biji_manager_get_item_at_path (manager, tag);
 
   if (BIJI_IS_NOTEBOOK (notebook))
@@ -274,7 +274,7 @@ on_new_notebook_created_cb (BijiItem *coll, gpointer user_data)
 static void
 add_new_tag (BjbOrganizeDialog *self)
 {
-  BijiManager *manager = bjb_window_base_get_manager (GTK_WIDGET (self->window));
+  BijiManager *manager = bjb_application_get_manager (BJB_APPLICATION_DEFAULT);
   const gchar *title = gtk_entry_get_text (GTK_ENTRY (self->entry));
 
   if (title && title[0])
