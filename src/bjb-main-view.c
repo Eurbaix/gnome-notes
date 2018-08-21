@@ -397,7 +397,7 @@ on_drag_data_received (GtkWidget        *widget,
 
       /* FIXME Text is guchar utf 8, conversion to perform */
       manager =  bjb_window_base_get_manager (self->window);
-      settings = bjb_app_get_settings (g_application_get_default ());
+      settings = bjb_application_get_settings (BJB_APPLICATION_DEFAULT);
       ret = biji_manager_note_new (manager,
                                      (gchar*) text,
                                      bjb_settings_get_default_location (settings));
@@ -603,7 +603,7 @@ bjb_main_view_constructed(GObject *o)
 
   self = BJB_MAIN_VIEW(o);
 
-  settings = bjb_app_get_settings (g_application_get_default ());
+  settings = bjb_application_get_settings (BJB_APPLICATION_DEFAULT);
   type = g_settings_get_enum (G_SETTINGS (settings), "view-type");
 
   gtk_orientable_set_orientation (GTK_ORIENTABLE (self), GTK_ORIENTATION_VERTICAL);
@@ -758,7 +758,7 @@ bjb_main_view_set_view_type (BjbMainView *self, GdMainViewType type)
 {
   BjbSettings *settings;
 
-  settings = bjb_app_get_settings(g_application_get_default());
+  settings = bjb_application_get_settings (BJB_APPLICATION_DEFAULT);
   g_settings_set_enum (G_SETTINGS (settings), "view-type", type);
 
   gd_main_view_set_view_type (self->view, type);

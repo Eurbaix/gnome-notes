@@ -181,7 +181,7 @@ bjb_note_view_constructed (GObject *obj)
   GdkRGBA                 color;
   BjbTextSizeType         text_size;
 
-  settings = bjb_app_get_settings(g_application_get_default());
+  settings = bjb_application_get_settings (BJB_APPLICATION_DEFAULT);
 
 
   /* view new from note deserializes the note-content. */

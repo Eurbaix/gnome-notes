@@ -128,7 +128,7 @@ bjb_window_base_set_property (GObject  *object,
 static gboolean
 on_key_pressed_cb (GtkWidget *w, GdkEvent *event, gpointer user_data)
 {
-  GApplication *app = g_application_get_default ();
+  BjbApplication *app = BJB_APPLICATION_DEFAULT;
   BjbWindowBase *self = BJB_WINDOW_BASE (user_data);
   GdkModifierType modifiers;
 
@@ -161,7 +161,7 @@ on_key_pressed_cb (GtkWidget *w, GdkEvent *event, gpointer user_data)
     case GDK_KEY_F1:
       if ((event->key.state & modifiers) != GDK_CONTROL_MASK)
         {
-          bjb_app_help (BJB_APPLICATION (app));
+          bjb_application_show_help_window (app);
           return TRUE;
         }
       break;
@@ -245,11 +245,12 @@ bjb_window_base_configure_event (GtkWidget         *widget,
 static void
 bjb_window_base_constructed (GObject *obj)
 {
-  BjbWindowBase *self = BJB_WINDOW_BASE (obj);
+  BjbWindowBase  *self = BJB_WINDOW_BASE (obj);
+  BjbApplication *app  = BJB_APPLICATION_DEFAULT;
 
   G_OBJECT_CLASS (bjb_window_base_parent_class)->constructed (obj);
 
-  self->settings = bjb_app_get_settings ((gpointer) g_application_get_default ());
+  self->settings = bjb_application_get_settings (app);
 
   gtk_window_set_position (GTK_WINDOW (self),GTK_WIN_POS_CENTER);
   gtk_window_set_title (GTK_WINDOW (self), _(BIJIBEN_MAIN_WIN_TITLE));
@@ -266,7 +267,7 @@ bjb_window_base_constructed (GObject *obj)
   self->entry = NULL;
 
   self->controller = bjb_controller_new
-    (bijiben_get_manager (BJB_APPLICATION(g_application_get_default())),
+    (bjb_application_get_manager (app),
      GTK_WINDOW (obj),
      self->entry );
 
@@ -541,7 +542,7 @@ bjb_window_base_get_view_type (BjbWindowBase *self)
 BijiManager *
 bjb_window_base_get_manager(GtkWidget * win)
 {
-  return bijiben_get_manager (BJB_APPLICATION (g_application_get_default()));
+  return bjb_application_get_manager (BJB_APPLICATION_DEFAULT);
 }
 
 void

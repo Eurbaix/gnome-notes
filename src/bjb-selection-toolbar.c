@@ -135,8 +135,8 @@ action_pop_up_note_callback (BjbSelectionToolbar *self)
   selection = bjb_main_view_get_selected_items (self->view);
   for (l=selection; l !=NULL; l=l->next)
   {
-    bijiben_new_window_for_note (g_application_get_default (),
-                                 BIJI_NOTE_OBJ (l->data));
+    bjb_application_show_note_window (BJB_APPLICATION_DEFAULT,
+                                      BIJI_NOTE_OBJ (l->data));
   }
 
   bjb_main_view_set_selection_mode (self->view, FALSE);

@@ -131,6 +131,7 @@ static void
 on_link_clicked (GtkButton        *button,
                  BjbEditorToolbar *self)
 {
+  BjbApplication          *app;
   BjbSettings             *settings;
   const gchar             *link;
   GtkWidget               *window;
@@ -138,6 +139,7 @@ on_link_clicked (GtkButton        *button,
   GdkRGBA                  color;
   BijiManager             *manager;
 
+  app = BJB_APPLICATION_DEFAULT;
   link = biji_note_obj_editor_get_selection (self->note);
 
   if (link == NULL)
@@ -146,7 +148,7 @@ on_link_clicked (GtkButton        *button,
   window = bjb_note_view_get_base_window (self->view);
   manager = bjb_window_base_get_manager(window);
 
-  settings = bjb_app_get_settings (g_application_get_default ());
+  settings = bjb_application_get_settings (app);
   result = biji_manager_note_new (manager,
                                     link,
                                     bjb_settings_get_default_location (settings));
@@ -155,7 +157,7 @@ on_link_clicked (GtkButton        *button,
   if (biji_note_obj_get_rgba (self->note, &color))
     biji_note_obj_set_rgba (result, &color);
 
-  bijiben_new_window_for_note (g_application_get_default (), result);
+  bjb_application_show_note_window (app, result);
 }
 
 static void

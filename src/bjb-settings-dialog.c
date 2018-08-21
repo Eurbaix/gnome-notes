@@ -293,16 +293,16 @@ static void
 bjb_settings_dialog_constructed (GObject *object)
 {
   BjbSettingsDialog *self;
-  GApplication      *app;
+  BjbApplication    *app;
   GList             *providers;
   GdkRGBA            color;
 
   G_OBJECT_CLASS (bjb_settings_dialog_parent_class)->constructed (object);
 
   self = BJB_SETTINGS_DIALOG (object);
-  app = g_application_get_default ();
-  self->manager = bijiben_get_manager (BJB_APPLICATION (app));
-  self->settings = bjb_app_get_settings (app);
+  app = BJB_APPLICATION_DEFAULT;
+  self->manager = bjb_application_get_manager (app);
+  self->settings = bjb_application_get_settings (app);
 
   gtk_list_box_set_selection_mode (self->listbox, GTK_SELECTION_NONE);
   gtk_list_box_set_header_func (self->listbox, header_func, NULL, NULL);

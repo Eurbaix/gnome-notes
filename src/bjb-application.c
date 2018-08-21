@@ -1,15 +1,15 @@
 /*
- * bjb-bijiben.c
+ * bjb-application.c
  * Copyright (C) 2011 Pierre-Yves LUYTEN <py@luyten.fr>
  * Copyright (C) 2017 Iñigo Martínez <inigomartinez@gmail.com>
  * Copyright (C) 2017 Mohammed Sadiq <sadiq@sadiqpk.org>
  *
- * bijiben is free software: you can redistribute it and/or modify it
+ * gnome-notes is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * bijiben is distributed in the hope that it will be useful, but
+ * gnome-notes is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -19,15 +19,11 @@
  */
 
 #include "config.h"
-
 #include <glib/gi18n.h>
 #include <stdlib.h>
 #include <libedataserver/libedataserver.h> /* ESourceRegistry */
 #include <libecal/libecal.h>               /* ECalClient      */
-
-
 #include <libbiji/libbiji.h>
-
 #include "bjb-application.h"
 #include "bjb-settings.h"
 #include "bjb-main-view.h"
@@ -37,66 +33,64 @@
 
 struct _BjbApplication
 {
-  GtkApplication parent_instance;
+  GtkApplication  parent_instance;
 
-  BijiManager *manager;
-  BjbSettings *settings;
+  BijiManager    *manager;
+  BjbSettings    *settings;
 
   /* Controls. to_open is for startup */
 
-  gboolean     first_run;
-  gboolean     is_loaded;
-  gboolean     new_note;
-  GQueue       files_to_open; // paths
+  gboolean        first_run;
+  gboolean        is_loaded;
+  gboolean        new_note;
+  GQueue          files_to_open; // paths
 };
 
 G_DEFINE_TYPE (BjbApplication, bjb_application, GTK_TYPE_APPLICATION)
 
-static void     bijiben_new_window_internal (BjbApplication *self,
-                                             BijiNoteObj   *note);
-static gboolean bijiben_open_path           (BjbApplication *self,
-                                             gchar          *path,
-                                             BjbWindowBase *window);
+static gboolean bjb_application_open_path (BjbApplication *self,
+                                           gchar          *path,
+                                           BjbWindowBase  *window);
 
 static void
-on_window_activated_cb (BjbWindowBase  *window,
-                        gboolean        available,
-                        BjbApplication *self)
+bjb_application_on_window_activated_cb (BjbWindowBase  *window,
+                                        gboolean        available,
+                                        BjbApplication *self)
 {
-  GList *l, *next;
+  GList *l;
+  GList *next;
 
   self->is_loaded = TRUE;
 
   for (l = self->files_to_open.head; l != NULL; l = next)
-  {
-    next = l->next;
-    if (bijiben_open_path (self, l->data, (available ? window : NULL)))
     {
-      g_free (l->data);
-      g_queue_delete_link (&self->files_to_open, l);
+      next = l->next;
+      if (bjb_application_open_path (self, l->data, (available ? window : NULL)))
+        {
+          g_free (l->data);
+          g_queue_delete_link (&self->files_to_open, l);
+        }
     }
-  }
 
   /* All requested notes are loaded, but we have a new one to create...
    * This implementation is not really safe,
    * we might have loaded SOME provider(s)
    * but not the default one - more work is needed here */
   if (self->new_note && g_queue_is_empty (&self->files_to_open))
-  {
-    BijiItem *item;
+    {
+      BijiItem *item;
 
-    self->new_note = FALSE;
-    item = BIJI_ITEM (biji_manager_note_new (
-                        self->manager,
-                        NULL,
-                        bjb_settings_get_default_location (self->settings)));
-    bijiben_new_window_internal (self, BIJI_NOTE_OBJ (item));
-  }
+      self->new_note = FALSE;
+      item = BIJI_ITEM (biji_manager_note_new (self->manager,
+                                               NULL,
+                                               bjb_settings_get_default_location (self->settings)));
+      bjb_application_show_note_window (self, BIJI_NOTE_OBJ (item));
+    }
 }
 
-static void
-bijiben_new_window_internal (BjbApplication *self,
-                             BijiNoteObj    *note)
+void
+bjb_application_show_note_window (BjbApplication *self,
+                                  BijiNoteObj    *note)
 {
   BjbWindowBase *window;
   GList         *windows;
@@ -106,8 +100,7 @@ bijiben_new_window_internal (BjbApplication *self,
   not_first_window = (gboolean) g_list_length (windows);
 
   window = BJB_WINDOW_BASE (bjb_window_base_new (note));
-  g_signal_connect (window, "activated",
-                    G_CALLBACK (on_window_activated_cb), self);
+  g_signal_connect (window, "activated", G_CALLBACK (bjb_application_on_window_activated_cb), self);
 
   gtk_widget_show (GTK_WIDGET (window));
 
@@ -116,9 +109,9 @@ bijiben_new_window_internal (BjbApplication *self,
 }
 
 static gboolean
-bijiben_open_path (BjbApplication *self,
-                   gchar          *path,
-                   BjbWindowBase  *window)
+bjb_application_open_path (BjbApplication *self,
+                           gchar          *path,
+                           BjbWindowBase  *window)
 {
   BijiItem *item;
 
@@ -128,22 +121,15 @@ bijiben_open_path (BjbApplication *self,
   item = biji_manager_get_item_at_path (self->manager, path);
 
   if (BIJI_IS_NOTE_OBJ (item) || !window)
-    bijiben_new_window_internal (self, BIJI_NOTE_OBJ (item));
+    bjb_application_show_note_window (self, BIJI_NOTE_OBJ (item));
   else
     bjb_window_base_switch_to_item (window, item);
 
   return TRUE;
 }
 
-void
-bijiben_new_window_for_note (GApplication *app,
-                             BijiNoteObj *note)
-{
-  bijiben_new_window_internal (BJB_APPLICATION (app), note);
-}
-
 static void
-bijiben_activate (GApplication *app)
+bjb_application_activate (GApplication *app)
 {
   GList *windows = gtk_application_get_windows (GTK_APPLICATION (app));
 
@@ -154,25 +140,24 @@ bijiben_activate (GApplication *app)
 
 /* If the app is already loaded, just open the file.
  * Else, keep it under the hood */
-
 static void
-bijiben_open (GApplication  *application,
-              GFile        **files,
-              gint           n_files,
-              const gchar   *hint)
+bjb_application_open (GApplication  *application,
+                      GFile        **files,
+                      gint           n_files,
+                      const gchar   *hint)
 {
-  BjbApplication *self;
-  gint i;
+  BjbApplication   *self;
+  gint              i;
   g_autofree gchar *path = NULL;
 
   self = BJB_APPLICATION (application);
 
   for (i = 0; i < n_files; i++)
-  {
-    path = g_file_get_parse_name (files[i]);
-    if (!bijiben_open_path (self, path, NULL))
-      g_queue_push_head (&self->files_to_open, path);
-  }
+    {
+      path = g_file_get_parse_name (files[i]);
+      if (!bjb_application_open_path (self, path, NULL))
+        g_queue_push_head (&self->files_to_open, path);
+    }
 }
 
 static void
@@ -184,9 +169,9 @@ bjb_application_init (BjbApplication *self)
   gtk_window_set_default_icon_name ("org.gnome.Notes");
 }
 
-
 static void
-bijiben_import_notes (BjbApplication *self, gchar *uri)
+bjb_application_import_notes (BjbApplication *self,
+                              gchar          *uri)
 {
   g_debug ("IMPORT to %s", bjb_settings_get_default_location (self->settings));
 
@@ -196,40 +181,40 @@ bijiben_import_notes (BjbApplication *self, gchar *uri)
 }
 
 static void
-theme_changed (GtkSettings *settings)
+bjb_application_on_theme_changed_cb (GtkSettings *settings)
 {
   static GtkCssProvider *provider = NULL;
-  g_autofree gchar *theme = NULL;
-  GdkScreen *screen;
+  g_autofree gchar      *theme    = NULL;
+  GdkScreen             *screen;
 
   g_object_get (settings, "gtk-theme-name", &theme, NULL);
   screen = gdk_screen_get_default ();
 
   if (g_str_equal (theme, "Adwaita"))
-  {
-    if (provider == NULL)
     {
-        g_autoptr(GFile) file = NULL;
+      if (provider == NULL)
+        {
+          g_autoptr(GFile) file = NULL;
 
-        provider = gtk_css_provider_new ();
-        file = g_file_new_for_uri ("resource:///org/gnome/bijiben/Adwaita.css");
-        gtk_css_provider_load_from_file (provider, file, NULL);
-    }
+          provider = gtk_css_provider_new ();
+          file = g_file_new_for_uri ("resource:///org/gnome/bijiben/Adwaita.css");
+          gtk_css_provider_load_from_file (provider, file, NULL);
+        }
 
-    gtk_style_context_add_provider_for_screen (screen,
-                                               GTK_STYLE_PROVIDER (provider),
-                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-  }
+      gtk_style_context_add_provider_for_screen (screen,
+                                                 GTK_STYLE_PROVIDER (provider),
+                                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+      }
   else if (provider != NULL)
-  {
-    gtk_style_context_remove_provider_for_screen (screen,
-                                                  GTK_STYLE_PROVIDER (provider));
-    g_clear_object (&provider);
-  }
+    {
+      gtk_style_context_remove_provider_for_screen (screen,
+                                                    GTK_STYLE_PROVIDER (provider));
+      g_clear_object (&provider);
+    }
 }
 
 static void
-bjb_apply_style (void)
+bjb_application_apply_style (void)
 {
   GtkSettings *settings;
 
@@ -238,19 +223,19 @@ bjb_apply_style (void)
    * for a more automatic solution that is still under discussion.
    */
   settings = gtk_settings_get_default ();
-  g_signal_connect (settings, "notify::gtk-theme-name", G_CALLBACK (theme_changed), NULL);
-  theme_changed (settings);
+  g_signal_connect (settings, "notify::gtk-theme-name", G_CALLBACK (bjb_application_on_theme_changed_cb), NULL);
+  bjb_application_on_theme_changed_cb (settings);
 }
 
 static void
-manager_ready_cb (GObject *source,
-                  GAsyncResult *res,
-                  gpointer user_data)
+bjb_application_on_manager_ready_cb (GObject      *source,
+                                     GAsyncResult *res,
+                                     gpointer      user_data)
 {
-  BjbApplication *self = user_data;
-  g_autoptr(GError) error = NULL;
-  g_autofree gchar *path = NULL;
-  g_autofree gchar *uri = NULL;
+  BjbApplication    *self  = user_data;
+  g_autoptr(GError)  error = NULL;
+  g_autofree gchar  *path  = NULL;
+  g_autofree gchar  *uri   = NULL;
 
   self->manager = biji_manager_new_finish (res, &error);
   g_application_release (G_APPLICATION (self));
@@ -267,34 +252,33 @@ manager_ready_cb (GObject *source,
       path = g_build_filename (g_get_user_data_dir (), "tomboy", NULL);
       uri = g_filename_to_uri (path, NULL, NULL);
       if (g_file_test (path, G_FILE_TEST_EXISTS))
-        bijiben_import_notes (self, uri);
+        bjb_application_import_notes (self, uri);
       g_free (path);
       g_free (uri);
 
       path = g_build_filename (g_get_user_data_dir (), "gnote", NULL);
       uri = g_filename_to_uri (path, NULL, NULL);
       if (g_file_test (path, G_FILE_TEST_EXISTS))
-        bijiben_import_notes (self, uri);
+        bjb_application_import_notes (self, uri);
     }
 
-  bijiben_new_window_internal (self, NULL);
+  bjb_application_show_note_window (self, NULL);
 }
 
 static void
-bijiben_startup (GApplication *application)
+bjb_application_startup (GApplication *application)
 {
-  BjbApplication *self;
-  g_autofree gchar *storage_path = NULL;
-  g_autofree gchar *default_color = NULL;
-  g_autoptr(GFile) storage = NULL;
-  g_autoptr(GError) error = NULL;
-  GdkRGBA         color = {0,0,0,0};
-
+  BjbApplication    *self;
+  g_autofree gchar  *storage_path  = NULL;
+  g_autofree gchar  *default_color = NULL;
+  g_autoptr(GFile)   storage       = NULL;
+  g_autoptr(GError)  error         = NULL;
+  GdkRGBA            color         = {0,0,0,0};
 
   G_APPLICATION_CLASS (bjb_application_parent_class)->startup (application);
   self = BJB_APPLICATION (application);
 
-  bjb_apply_style ();
+  bjb_application_apply_style ();
 
   storage_path = g_build_filename (g_get_user_data_dir (), "bijiben", NULL);
   storage = g_file_new_for_path (storage_path);
@@ -313,27 +297,28 @@ bijiben_startup (GApplication *application)
   gdk_rgba_parse (&color, default_color);
 
   g_application_hold (application);
-  biji_manager_new_async (storage, &color, manager_ready_cb, self);
+  biji_manager_new_async (storage, &color, bjb_application_on_manager_ready_cb, self);
 }
 
 static gboolean
-bijiben_application_local_command_line (GApplication *application,
-                                        gchar ***arguments,
-                                        gint *exit_status)
+bjb_application_local_command_line (GApplication   *application,
+                                    gchar        ***arguments,
+                                    gint           *exit_status)
 {
-  BjbApplication *self;
-  gboolean version = FALSE;
-  gchar **remaining = NULL;
-  GOptionContext *context;
-  g_autoptr(GError) error = NULL;
-  gint argc = 0;
-  gchar **argv = NULL;
+  BjbApplication     *self;
+  gboolean            version   = FALSE;
+  gchar             **remaining = NULL;
+  GOptionContext     *context;
+  g_autoptr(GError)   error     = NULL;
+  gint                argc      = 0;
+  gchar             **argv      = NULL;
 
-  const GOptionEntry options[] = {
+  const GOptionEntry options[] =
+  {
     { "version", 0, 0, G_OPTION_ARG_NONE, &version,
-      N_("Show the application’s version"), NULL},
-    { "new-note", 0, 0, G_OPTION_ARG_NONE, &BJB_APPLICATION(application)->new_note,
-      N_("Create a new note"), NULL},
+      N_("Show the application’s version"), NULL },
+    { "new-note", 0, 0, G_OPTION_ARG_NONE, &BJB_APPLICATION (application)->new_note,
+      N_("Create a new note"), NULL },
     { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &remaining,
       NULL,  N_("[FILE…]") },
     { NULL }
@@ -351,48 +336,50 @@ bijiben_application_local_command_line (GApplication *application,
   argc = g_strv_length (argv);
 
   if (!g_option_context_parse (context, &argc, &argv, &error))
-  {
-    /* Translators: this is a fatal error quit message
-     * printed on the command line */
-    g_printerr ("%s: %s\n", _("Could not parse arguments"), error->message);
+    {
+      /* Translators: this is a fatal error quit message
+       * printed on the command line */
+      g_printerr ("%s: %s\n", _("Could not parse arguments"), error->message);
 
-    *exit_status = EXIT_FAILURE;
-    goto out;
-  }
+      *exit_status = EXIT_FAILURE;
+      goto out;
+    }
 
   if (version)
-  {
-    g_print ("%s %s\n", _("GNOME Notes"), VERSION);
-    goto out;
-  }
+    {
+      g_print ("%s %s\n", _("GNOME Notes"), VERSION);
+      goto out;
+    }
 
-  /* bijiben_startup */
+  /* bjb_application_startup */
   g_application_register (application, NULL, &error);
 
   if (error != NULL)
-  {
-    g_printerr ("%s: %s\n",
-                /* Translators: this is a fatal error quit message
-                 * printed on the command line */
-                _("Could not register the application"),
-                error->message);
+    {
+      g_printerr ("%s: %s\n",
+                  /* Translators: this is a fatal error quit message
+                   * printed on the command line */
+                  _("Could not register the application"),
+                  error->message);
 
-    *exit_status = EXIT_FAILURE;
-    goto out;
-  }
+      *exit_status = EXIT_FAILURE;
+      goto out;
+    }
 
   self = BJB_APPLICATION (application);
 
   if (!self->new_note && remaining != NULL)
-  {
-    gchar **args;
+    {
+      gchar **args;
 
-    for (args = remaining; *args; args++)
-      if (!bijiben_open_path (self, *args, NULL))
-        g_queue_push_head (&self->files_to_open, g_strdup (*args));
-  }
+      for (args = remaining; *args; args++)
+        {
+          if (!bjb_application_open_path (self, *args, NULL))
+            g_queue_push_head (&self->files_to_open, g_strdup (*args));
+        }
+    }
 
- out:
+out:
   g_strfreev (remaining);
   g_option_context_free (context);
 
@@ -400,7 +387,7 @@ bijiben_application_local_command_line (GApplication *application,
 }
 
 static void
-bijiben_finalize (GObject *object)
+bjb_application_finalize (GObject *object)
 {
   BjbApplication *self = BJB_APPLICATION (object);
 
@@ -416,14 +403,14 @@ static void
 bjb_application_class_init (BjbApplicationClass *klass)
 {
   GApplicationClass *aclass = G_APPLICATION_CLASS (klass);
-  GObjectClass *oclass = G_OBJECT_CLASS (klass);
+  GObjectClass      *oclass = G_OBJECT_CLASS (klass);
 
-  aclass->activate = bijiben_activate;
-  aclass->open = bijiben_open;
-  aclass->startup = bijiben_startup;
-  aclass->local_command_line = bijiben_application_local_command_line;
+  aclass->activate = bjb_application_activate;
+  aclass->open = bjb_application_open;
+  aclass->startup = bjb_application_startup;
+  aclass->local_command_line = bjb_application_local_command_line;
 
-  oclass->finalize = bijiben_finalize;
+  oclass->finalize = bjb_application_finalize;
 }
 
 BjbApplication *
@@ -431,32 +418,27 @@ bjb_application_new (void)
 {
   return g_object_new (BJB_TYPE_APPLICATION,
                        "application-id", "org.gnome.Notes",
-                       "flags", G_APPLICATION_HANDLES_OPEN,
+                       "flags",          G_APPLICATION_HANDLES_OPEN,
                        NULL);
 }
 
 BijiManager *
-bijiben_get_manager(BjbApplication *self)
+bjb_application_get_manager (BjbApplication *self)
 {
   return self->manager;
 }
 
-const gchar *
-bijiben_get_bijiben_dir (void)
+BjbSettings *
+bjb_application_get_settings (BjbApplication *self)
 {
-  return DATADIR;
-}
-
-BjbSettings * bjb_app_get_settings(gpointer application)
-{
-  return BJB_APPLICATION(application)->settings;
+  return self->settings;
 }
 
 void
-bjb_app_import_notes (BjbApplication *self)
+bjb_application_show_import_dialog (BjbApplication *self)
 {
   GtkDialog *dialog = bjb_import_dialog_new (GTK_APPLICATION (self));
-  gint result = gtk_dialog_run (dialog);
+  gint       result = gtk_dialog_run (dialog);
 
   if (result == GTK_RESPONSE_OK)
     {
@@ -464,7 +446,7 @@ bjb_app_import_notes (BjbApplication *self)
       for (GList *l = locations; l != NULL; l = l->next)
         {
           g_autofree gchar *uri = g_filename_to_uri (l->data, NULL, NULL);
-          bijiben_import_notes (self, uri);
+          bjb_application_import_notes (self, uri);
         }
 
       g_list_free_full (locations, g_free);
@@ -475,10 +457,10 @@ bjb_app_import_notes (BjbApplication *self)
 }
 
 void
-bjb_app_help (BjbApplication *self)
+bjb_application_show_help_window (BjbApplication *self)
 {
-  GtkApplication *app = GTK_APPLICATION (self);
-  g_autoptr(GError) error = NULL;
+  GtkApplication    *app   = GTK_APPLICATION (self);
+  g_autoptr(GError)  error = NULL;
 
   gtk_show_uri_on_window (gtk_application_get_active_window (app),
                           "help:bijiben",
@@ -489,34 +471,34 @@ bjb_app_help (BjbApplication *self)
     g_warning ("%s", error->message);
 }
 
-
 void
-bjb_app_about (BjbApplication *self)
+bjb_application_show_about_dialog (BjbApplication *self)
 {
-  GtkApplication *app = GTK_APPLICATION (self);
-  GList *windows = gtk_application_get_windows (app);
+  GtkApplication *app     = GTK_APPLICATION (self);
+  GList          *windows = gtk_application_get_windows (app);
 
-  const gchar *authors[] = {
+  const gchar *authors[] =
+  {
     "Pierre-Yves Luyten <py@luyten.fr>",
     NULL
   };
 
-  const gchar *artists[] = {
+  const gchar *artists[] =
+  {
     "William Jon McCann <jmccann@redhat.com>",
     NULL
   };
 
   gtk_show_about_dialog (g_list_nth_data (windows, 0),
-                         "program-name", _("Notes"),
-                         "comments", _("Simple notebook for GNOME"),
-                         "license-type", GTK_LICENSE_GPL_3_0,
-                         "version", VERSION,
-                         "copyright", "Copyright © 2013 Pierre-Yves Luyten",
-                         "authors", authors,
-                         "artists", artists,
+                         "program-name",       _("Notes"),
+                         "comments",           _("Simple notebook for GNOME"),
+                         "license-type",       GTK_LICENSE_GPL_3_0,
+                         "version",            VERSION,
+                         "copyright",          "Copyright © 2013 Pierre-Yves Luyten",
+                         "authors",            authors,
+                         "artists",            artists,
                          "translator-credits", _("translator-credits"),
-                         "website", "https://wiki.gnome.org/Apps/Notes",
-                         "logo-icon-name", "org.gnome.Notes",
+                         "website",            "https://wiki.gnome.org/Apps/Notes",
+                         "logo-icon-name",     "org.gnome.Notes",
                          NULL);
 }
-

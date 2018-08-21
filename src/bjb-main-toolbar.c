@@ -110,13 +110,13 @@ G_DEFINE_TYPE (BjbMainToolbar, bjb_main_toolbar, GTK_TYPE_HEADER_BAR)
 static void
 on_about_cb (BjbMainToolbar *self)
 {
-  bjb_app_about (BJB_APPLICATION (g_application_get_default ()));
+  bjb_application_show_about_dialog (BJB_APPLICATION_DEFAULT);
 }
 
 static void
 on_import_notes_cb (BjbMainToolbar *self)
 {
-  bjb_app_import_notes (BJB_APPLICATION (g_application_get_default ()));
+  bjb_application_show_import_dialog (BJB_APPLICATION_DEFAULT);
 }
 
 static void
@@ -133,7 +133,7 @@ static void
 on_text_size_cb (BjbMainToolbar *self,
                  GtkWidget      *item)
 {
-  BjbSettings *settings = bjb_app_get_settings (g_application_get_default ());
+  BjbSettings *settings = bjb_application_get_settings (BJB_APPLICATION_DEFAULT);
   BjbTextSizeType text_size = g_settings_get_enum (G_SETTINGS (settings), "text-size");
   BjbTextSizeType new_text_size = text_size;
 
@@ -168,7 +168,7 @@ on_preferences_cb (BjbMainToolbar *self)
 static void
 on_help_cb (BjbMainToolbar *self)
 {
-  bjb_app_help (BJB_APPLICATION (g_application_get_default ()));
+  bjb_application_show_help_window (BJB_APPLICATION_DEFAULT);
 }
 
 static void
@@ -182,7 +182,7 @@ on_new_note_clicked (BjbMainToolbar *self)
 
   /* append note to notebook */
   manager = bjb_window_base_get_manager (bjb_main_view_get_window (self->parent));
-  settings = bjb_app_get_settings (g_application_get_default ());
+  settings = bjb_application_get_settings (BJB_APPLICATION_DEFAULT);
   result = biji_manager_note_new (manager,
                                     NULL,
                                     bjb_settings_get_default_location (settings));
@@ -555,7 +555,7 @@ on_detached_clicked_cb (BjbMainToolbar *self)
   note = bjb_window_base_get_note (BJB_WINDOW_BASE (self->window));
   bjb_window_base_switch_to (BJB_WINDOW_BASE (self->window),
                              BJB_WINDOW_BASE_MAIN_VIEW);
-  bijiben_new_window_for_note (g_application_get_default (), note);
+  bjb_application_show_note_window (BJB_APPLICATION_DEFAULT, note);
 }
 
 static void
@@ -580,7 +580,7 @@ populate_bar_for_note_view (BjbMainToolbar *self)
   if (!self->note) /* no reason this would happen */
     return;
 
-  settings = bjb_app_get_settings (g_application_get_default());
+  settings = bjb_application_get_settings (BJB_APPLICATION_DEFAULT);
 
   gtk_widget_hide (self->new_button);
   gtk_widget_hide (self->style_buttons);
@@ -781,7 +781,7 @@ populate_main_toolbar(BjbMainToolbar *self)
 static void
 bjb_main_toolbar_setup_menu (BjbMainToolbar *self)
 {
-  BjbSettings *settings = bjb_app_get_settings (g_application_get_default ());
+  BjbSettings *settings = bjb_application_get_settings (BJB_APPLICATION_DEFAULT);
   BjbTextSizeType text_size = g_settings_get_enum (G_SETTINGS (settings), "text-size");
 
   gtk_widget_add_accelerator (self->undo_item, "activate", self->accel, GDK_KEY_z,
